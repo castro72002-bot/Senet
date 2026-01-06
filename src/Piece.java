@@ -8,4 +8,8 @@ public class Piece {
         this.owner = owner;
         this.position = position;
     }
+
+    public Piece copy() {
+        return new Piece(this.id, this.owner, this.position);
+    }
 }

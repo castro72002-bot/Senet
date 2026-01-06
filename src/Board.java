@@ -3,47 +3,71 @@ public class Board {
     public Square[] squares;
 
     public Board() {
-        squares = new Square[31]; // نهمل index 0
+        squares = new Square[31];
         initializeSquares();
     }
 
-    private void initializeSquares() {
+    public void initializeSquares() {
         for (int i = 1; i <= 30; i++) {
             squares[i] = new Square(i);
         }
     }
 
-    // الحصول على مربع
     public Square getSquare(int index) {
         if (index < 1 || index > 30) return null;
         return squares[index];
     }
 
-    // وضع قطعة على مربع
     public void placePiece(Piece piece, int position) {
         if (position > 30) return;
         squares[position].occupant = piece;
         piece.position = position;
     }
 
+    // التحقق من صحة الحركة دون تنفيذها
+    public boolean isMoveValid(Piece piece, int steps) {
+        int oldPosition = piece.position;
+        if (oldPosition > 30) return false;
+
+        // Special squares that always allow move (either exit or rebirth)
+        if (oldPosition == 28 || oldPosition == 29 || oldPosition == 30) return true;
+        if (oldPosition == 26 && steps == 5) return true;
+
+        int newPosition = oldPosition + steps;
+
+        // Rule: Must land exactly on 26
+        if (oldPosition < 26 && newPosition > 26) return false;
+
+        // Rule: Cannot exceed 30 (except special squares handled above)
+        if (newPosition > 30) return false;
+
+        Square targetSquare = squares[newPosition];
+        if (targetSquare.occupant != null) {
+            // Can only swap if it's an opponent's piece
+            return !targetSquare.occupant.owner.equals(piece.owner);
+        }
+
+        return true;
+    }
+
     // منطق حركة القطعة
     public boolean movePiece(Piece piece, int steps) {
         int oldPosition = piece.position;
         
-        // 1. التعامل مع المربعات الخاصة قبل التحريك (26، 28, 29, 30)
+        // 1. Handling special squares before moving (26, 28, 29, 30)
         if (oldPosition == 26) {
             if (steps == 5) {
-                System.out.println("حصلت على 5! الخروج فورا من مربع السعادة (26)");
+                System.out.println("Rolled a 5! Exiting immediately from House of Happiness (26)");
                 exitPiece(piece, oldPosition);
                 return true;
             }
-            // إذا لم تكن الرمية 5، يكمل الحركة العادية ليدخل في 27 أو 28 إلخ
+            // If not 5, continue normal move
         }
         if (oldPosition == 28) {
             if (steps == 3) {
                 exitPiece(piece, oldPosition);
             } else {
-                System.out.println("did not get 3! returning to square 15");
+                System.out.println("Did not roll a 3! Returning to Rebirth (15)");
                 handleReturnToRebirth(piece, oldPosition);
             }
             return true;
@@ -52,52 +76,52 @@ public class Board {
             if (steps == 2) {
                 exitPiece(piece, oldPosition);
             } else {
-                System.out.println("did not get 2! returning to square 15");
+                System.out.println("Did not roll a 2! Returning to Rebirth (15)");
                 handleReturnToRebirth(piece, oldPosition);
             }
             return true;
         }
         if (oldPosition == 30) {
-            // أي رمية تخرج الحجر من المربع 30
+            // Any roll exits from square 30
             exitPiece(piece, oldPosition);
             return true;
         }
 
         int newPosition = oldPosition + steps;
 
-        // 2. قاعدة المربع 26 (HAPPINESS): يجب الهبوط عليه بالضبط
+        // 2. Square 26 (HAPPINESS) rule: Must land exactly
         if (oldPosition < 26 && newPosition > 26) {
-            System.out.println("did not get 26! must get 26 to move forward");
-            return false; // فشل الحركة
+            System.out.println("Cannot bypass House of Happiness (26). Pick another piece or wait for exact roll.");
+            return false;
         }
 
-        // 3. إذا تجاوز الحجر المربع 30 (حالة عامة قبل القواعد الخاصة)
+        // 3. Exceeding square 30 (General case)
         if (newPosition > 30) {
-            System.out.println("did not get 30! must get 30 to move forward");      
-            return false; // فشل الحركة
+            System.out.println("Cannot exceed square 30 except via special exit rules (from 28, 29, 30).");
+            return false;
         }
 
         Square targetSquare = squares[newPosition];
 
-        // 4. التعامل مع المربع 27 (WATER) فور الهبوط عليه
+        // 4. Handle Square 27 (WATER) immediately upon landing
         if (newPosition == 27) {
-            System.out.println("you must go to Rebirth (15)");
+            System.out.println("Landed in Water! Returning to Rebirth (15)");
             handleReturnToRebirth(piece, oldPosition);
             return true;
         }
 
-        // 5. منطق الهبوط والتبديل
+        // 5. Landing and Swapping logic
         if (targetSquare.occupant != null) {
             Piece otherPiece = targetSquare.occupant;
             if (!otherPiece.owner.equals(piece.owner)) {
-                System.out.println("did not get 27! must get 27 to move forward");
+                System.out.println("Swapping positions: Piece " + piece.owner + " takes " + otherPiece.owner + "'s place");
                 targetSquare.occupant = piece;
                 piece.position = newPosition;
                 squares[oldPosition].occupant = otherPiece;
                 otherPiece.position = oldPosition;
                 return true;
             } else {
-                System.out.println("did not get 27! must get 27 to move forward");
+                System.out.println("Square occupied by same color piece. Cannot move.");
                 return false;
             }
         } else {
@@ -110,7 +134,7 @@ public class Board {
     private void exitPiece(Piece piece, int currentPos) {
         removePiece(currentPos);
         piece.position = 31;
-        System.out.println("P" + piece.id + " (" + piece.owner + ") exited the board successfully!");
+        System.out.println("Piece P" + piece.id + " (" + piece.owner + ") successfully exited!");
     }
 
     private void handleReturnToRebirth(Piece piece, int currentPos) {
@@ -119,37 +143,37 @@ public class Board {
         if (squares[rebirthPos].occupant == null) {
             placePiece(piece, rebirthPos);
         } else {
-            // البحث عن أقرب مربع فارغ قبل 15
+            // Search for nearest empty square before 15
             int nearest = rebirthPos - 1;
             while (nearest >= 1 && squares[nearest].occupant != null) {
                 nearest--;
             }
             if (nearest >= 1) {
                 placePiece(piece, nearest);
-                System.out.println("did not get 15! must get 15 to move forward, placed in square " + nearest);
+                System.out.println("Square 15 occupied, piece placed at square " + nearest);
             } else {
-                System.out.println("did not get 15! must get 15 to move forward, no empty square found before 15");
+                System.out.println("No empty square found to return to!");
             }
         }
     }
 
-    // إزالة قطعة من مربع
+    // Removing piece from square
     public void removePiece(int position) {
         if (position >= 1 && position <= 30) {
             squares[position].occupant = null;
         }
     }
 
-    // طباعة البورد (للتجربة)
+    // Printing board (for testing)
     public void printBoard() {
-        System.out.println("\n--- لوحة السينيت (R:Rebirth, H:Happiness, W:Water, 3:Truths, 2:Atoum, F:Horus) ---");
+        System.out.println("\n--- Senet Board (R:Rebirth, H:Happiness, W:Water, 3:Truths, 2:Atoum, F:Horus) ---");
         for (int i = 1; i <= 30; i++) {
             String content = "  ";
             if (squares[i].occupant != null) {
                 content = squares[i].occupant.owner + squares[i].occupant.id;
             }
 
-            // إضافة رموز للمربعات الخاصة
+            // Special square symbols
             String special = " ";
             switch (i) {
                 case 15 -> special = "R";
@@ -164,6 +188,6 @@ public class Board {
 
             if (i == 10 || i == 20) System.out.println();
         }
-        System.out.println("\n");
+        System.out.println("\n-------------------------------------------------------------------------");
     }
 }

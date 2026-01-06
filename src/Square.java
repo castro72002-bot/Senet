@@ -7,6 +7,12 @@ public class Square {
         this.occupant = null;
     }
 
+    public Square copy() {
+        Square newSquare = new Square(this.index);
+        // لا ننسخ الـ occupant هنا مباشرة، سنقوم بربطه في كلاس Board لضمان الربط مع النسخ الجديدة من القطع
+        return newSquare;
+    }
+
     public boolean isEmpty() {
         return occupant == null;
     }
