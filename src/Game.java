@@ -43,28 +43,41 @@ public class Game {
         int diceValue = rollDice();
         System.out.println("Dice roll result: " + diceValue);
 
+        // Check if there are pieces on squares 28 or 30 at the start of the turn
+        List<Piece> piecesOnPenaltySquares = new ArrayList<>();
+        List<Piece> currentPieces = currentTurn.equals("W") ? whitePieces : blackPieces;
+        for (Piece p : currentPieces) {
+            if (p.position == 28 || p.position == 30) {
+                piecesOnPenaltySquares.add(p);
+            }
+        }
+
+        Piece movedPiece = null;
+
         // If it's the computer's turn (Black) and it's a PvE game
         if (isVsComputer && currentTurn.equals("B")) {
             System.out.println("Computer is thinking...");
+            board.silentMode = true; // Silence detailed logs for computer
             GameState currentState = new GameState(board, whitePieces, blackPieces, currentTurn);
             int bestPieceId = Expectiminimax.getBestMove(currentState, diceValue);
 
             if (bestPieceId != -1) {
-                Piece selectedPiece = null;
                 for (Piece p : blackPieces) {
                     if (p.id == bestPieceId) {
-                        selectedPiece = p;
+                        movedPiece = p;
                         break;
                     }
                 }
-                board.movePiece(selectedPiece, diceValue);
+                
+                board.movePiece(movedPiece, diceValue);
+                board.silentMode = false; // Restore logging
                 System.out.println("Computer chose to move piece P" + bestPieceId);
             } else {
+                board.silentMode = false;
                 System.out.println("Computer has no valid moves!");
             }
         } else {
             // Manual play
-            List<Piece> currentPieces = currentTurn.equals("W") ? whitePieces : blackPieces;
             List<Piece> movablePieces = new ArrayList<>();
             for (Piece p : currentPieces) {
                 if (p.position <= 30) {
@@ -100,19 +113,19 @@ public class Game {
                         try {
                             String input = scanner.next();
                             choice = Integer.parseInt(input);
-                            Piece selectedPiece = null;
                             for (Piece p : movablePieces) {
                                 if (p.id == choice) {
-                                    selectedPiece = p;
+                                    movedPiece = p;
                                     break;
                                 }
                             }
 
-                            if (selectedPiece != null) {
-                                boolean moved = board.movePiece(selectedPiece, diceValue);
+                            if (movedPiece != null) {
+                                boolean moved = board.movePiece(movedPiece, diceValue);
                                 if (!moved) {
                                     System.out.println("Invalid move. Please choose another piece:");
                                     choice = -1;
+                                    movedPiece = null;
                                 }
                             } else {
                                 System.out.println("Invalid piece ID. Try again:");
@@ -124,6 +137,13 @@ public class Game {
                         }
                     }
                 }
+            }
+        }
+
+        // Apply penalty for pieces on 28 or 30 that were NOT moved
+        for (Piece p : piecesOnPenaltySquares) {
+            if (p != movedPiece) {
+                board.forceReturnToRebirth(p);
             }
         }
 

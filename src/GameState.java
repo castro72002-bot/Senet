@@ -17,6 +17,7 @@ public class GameState {
     // دالة لنسخ الحالة بالكامل (Deep Copy)
     public GameState copy() {
         Board newBoard = new Board();
+        newBoard.silentMode = true; // Always silent during simulation
         List<Piece> newWhite = new ArrayList<>();
         List<Piece> newBlack = new ArrayList<>();
 
@@ -48,20 +49,20 @@ public class GameState {
 
         for (Piece p : currentPieces) {
             if (p.position <= 30) {
-                GameState newState = this.copy();
-                // العثور على نفس القطعة في الحالة الجديدة
-                List<Piece> targetList = currentTurn.equals("W") ? newState.whitePieces : newState.blackPieces;
-                Piece targetPiece = null;
-                for (Piece tp : targetList) {
-                    if (tp.id == p.id) {
-                        targetPiece = tp;
-                        break;
+                // تحقق أولاً إذا كانت الحركة صالحة قبل النسخ المكلف
+                if (board.isMoveValid(p, diceValue)) {
+                    GameState newState = this.copy();
+                    List<Piece> targetList = currentTurn.equals("W") ? newState.whitePieces : newState.blackPieces;
+                    Piece targetPiece = null;
+                    for (Piece tp : targetList) {
+                        if (tp.id == p.id) {
+                            targetPiece = tp;
+                            break;
+                        }
                     }
-                }
 
-                if (targetPiece != null) {
-                    boolean moved = newState.board.movePiece(targetPiece, diceValue);
-                    if (moved) {
+                    if (targetPiece != null) {
+                        newState.board.movePiece(targetPiece, diceValue);
                         // تبديل الدور في الحالة الجديدة
                         newState.currentTurn = newState.currentTurn.equals("W") ? "B" : "W";
                         nextStates.add(newState);

@@ -1,89 +1,87 @@
 import java.util.List;
 
 public class Expectiminimax {
-    private static final int MAX_DEPTH = 4; // Depth set to 4 as requested
+    private static final int MAX_DEPTH = 3; 
 
     public static int getBestMove(GameState state, int diceValue) {
-        double bestVal = Double.NEGATIVE_INFINITY;
+        String aiPlayer = state.currentTurn;
+        boolean isAiWhite = aiPlayer.equals("W");
+        
+        double bestVal = isAiWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         int bestPieceId = -1;
 
-        List<Piece> currentPieces = state.currentTurn.equals("W") ? state.whitePieces : state.blackPieces;
+        List<GameState> nextStates = state.getNextStates(diceValue);
+        
+        if (nextStates.isEmpty()) return -1;
+        if (nextStates.size() == 1) {
+            return getPieceIdFromTransition(state, nextStates.get(0));
+        }
 
-        for (Piece p : currentPieces) {
-            if (p.position <= 30) {
-                GameState next = state.copy();
-                List<Piece> targetList = next.currentTurn.equals("W") ? next.whitePieces : next.blackPieces;
-                Piece targetPiece = null;
-                for (Piece tp : targetList) {
-                    if (tp.id == p.id) {
-                        targetPiece = tp;
-                        break;
-                    }
+        for (GameState next : nextStates) {
+            // After AI moves, it's the other player's turn (MIN if AI is MAX, and vice-versa)
+            // But expectiminimax handles the turn based on GameState.currentTurn
+            double val = expectiminimax(next, MAX_DEPTH - 1);
+            
+            if (isAiWhite) {
+                if (val > bestVal) {
+                    bestVal = val;
+                    bestPieceId = getPieceIdFromTransition(state, next);
                 }
-
-                if (targetPiece != null && next.board.movePiece(targetPiece, diceValue)) {
-                    next.currentTurn = next.currentTurn.equals("W") ? "B" : "W";
-                    double val = expectiminimax(next, MAX_DEPTH - 1, false);
-                    if (val > bestVal) {
-                        bestVal = val;
-                        bestPieceId = p.id;
-                    }
+            } else {
+                if (val < bestVal) {
+                    bestVal = val;
+                    bestPieceId = getPieceIdFromTransition(state, next);
                 }
             }
         }
         return bestPieceId;
     }
 
-    private static double expectiminimax(GameState state, int depth, boolean isMax) {
+    private static double expectiminimax(GameState state, int depth) {
         if (depth == 0 || state.isGameOver()) {
             return state.evaluate();
         }
 
-        if (isMax) {
-            // عقدة Chance (رمي النرد)
-            double res = 0;
-            for (int d = 1; d <= 5; d++) {
-                double prob = 0.2; // احتمال متساوي لكل رقم 1/5
-                res += prob * minimax(state, depth, true);
+        boolean isWhiteTurn = state.currentTurn.equals("W");
+        double res = 0;
+
+        // Chance Node: Dice roll 1-5
+        for (int d = 1; d <= 5; d++) {
+            List<GameState> nextStates = state.getNextStates(d);
+            
+            if (nextStates.isEmpty()) {
+                // Skip turn logic
+                GameState skipState = state.copy();
+                skipState.currentTurn = isWhiteTurn ? "B" : "W";
+                res += 0.2 * expectiminimax(skipState, depth - 1);
+            } else {
+                // If it's White's turn, they want to MAXIMIZE evaluate()
+                // If it's Black's turn, they want to MINIMIZE evaluate()
+                double extremeVal = isWhiteTurn ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+                
+                for (GameState next : nextStates) {
+                    double val = expectiminimax(next, depth - 1);
+                    if (isWhiteTurn) {
+                        extremeVal = Math.max(extremeVal, val);
+                    } else {
+                        extremeVal = Math.min(extremeVal, val);
+                    }
+                }
+                res += 0.2 * extremeVal;
             }
-            return res;
-        } else {
-            // دور الخصم (MIN)
-            double res = 0;
-            for (int d = 1; d <= 5; d++) {
-                double prob = 0.2;
-                res += prob * minimax(state, depth, false);
-            }
-            return res;
         }
+        return res;
     }
 
-    private static double minimax(GameState state, int depth, boolean isMax) {
-        if (depth == 0 || state.isGameOver()) {
-            return state.evaluate();
-        }
+    private static int getPieceIdFromTransition(GameState before, GameState after) {
+        List<Piece> oldPieces = before.currentTurn.equals("W") ? before.whitePieces : before.blackPieces;
+        List<Piece> newPieces = before.currentTurn.equals("W") ? after.whitePieces : after.blackPieces;
 
-        if (isMax) {
-            double maxEval = Double.NEGATIVE_INFINITY;
-            List<GameState> nextStates = state.getNextStates(1); // تبسيط: نأخذ الحالات الممكنة
-            // في الواقع، Expectiminimax يحتاج لتجربة كل الاحتمالات، سنقوم بتبسيطها هنا
-            // لتجنب التعقيد الزائد في الحسابات
-            for (int d = 1; d <= 5; d++) {
-                for (GameState next : state.getNextStates(d)) {
-                    double eval = expectiminimax(next, depth - 1, false);
-                    maxEval = Math.max(maxEval, eval);
-                }
+        for (int i = 0; i < oldPieces.size(); i++) {
+            if (oldPieces.get(i).position != newPieces.get(i).position) {
+                return oldPieces.get(i).id;
             }
-            return maxEval == Double.NEGATIVE_INFINITY ? state.evaluate() : maxEval;
-        } else {
-            double minEval = Double.POSITIVE_INFINITY;
-            for (int d = 1; d <= 5; d++) {
-                for (GameState next : state.getNextStates(d)) {
-                    double eval = expectiminimax(next, depth - 1, true);
-                    minEval = Math.min(minEval, eval);
-                }
-            }
-            return minEval == Double.POSITIVE_INFINITY ? state.evaluate() : minEval;
         }
+        return -1;
     }
 }
