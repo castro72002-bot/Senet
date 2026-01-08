@@ -16,7 +16,7 @@ public class SenetAI {
         if (moves.size() == 1) return getMovedId(s, moves.get(0));
 
         for (SenetState m : moves) {
-            double v = minimax(m, DEPTH - 1);
+            double v = isWhite ? minPlayer(m, DEPTH - 1) : maxPlayer(m, DEPTH - 1);
             
             if (isWhite) {
                 if (v > bestVal) {
@@ -33,32 +33,46 @@ public class SenetAI {
         return bestId;
     }
 
-    public static double minimax(SenetState s, int d) {
-        if (d == 0 || s.isDone()) {
-            return s.evaluate();
-        }
-
-        boolean isWhite = s.player.equals("W");
-        double avg = 0;
-
+    public static double maxPlayer(SenetState s, int d) {
+        if (d == 0 || s.isDone()) return s.evaluate();
+        
+        double total = 0;
         for (int r = 1; r <= 5; r++) {
             List<SenetState> options = s.nextStates(r);
-            
             if (options.isEmpty()) {
                 SenetState skip = s.copy();
-                skip.player = isWhite ? "B" : "W";
-                avg += 0.2 * minimax(skip, d - 1);
+                skip.player = "B";
+                total += 0.2 * minPlayer(skip, d - 1);
             } else {
-                double limit = isWhite ? -1e9 : 1e9;
+                double best = -1e9;
                 for (SenetState st : options) {
-                    double val = minimax(st, d - 1);
-                    if (isWhite) limit = Math.max(limit, val);
-                    else limit = Math.min(limit, val);
+                    best = Math.max(best, minPlayer(st, d - 1));
                 }
-                avg += 0.2 * limit;
+                total += 0.2 * best;
             }
         }
-        return avg;
+        return total;
+    }
+
+    public static double minPlayer(SenetState s, int d) {
+        if (d == 0 || s.isDone()) return s.evaluate();
+        
+        double total = 0;
+        for (int r = 1; r <= 5; r++) {
+            List<SenetState> options = s.nextStates(r);
+            if (options.isEmpty()) {
+                SenetState skip = s.copy();
+                skip.player = "W";
+                total += 0.2 * maxPlayer(skip, d - 1);
+            } else {
+                double best = 1e9;
+                for (SenetState st : options) {
+                    best = Math.min(best, maxPlayer(st, d - 1));
+                }
+                total += 0.2 * best;
+            }
+        }
+        return total;
     }
 
     public static int getMovedId(SenetState oldS, SenetState newS) {
