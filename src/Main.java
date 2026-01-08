@@ -2,26 +2,28 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        Scanner s = new Scanner(System.in);
         System.out.println("--- Welcome to Senet ---");
-        System.out.println("Select Game Mode:");
-        System.out.println("1. Player vs Player (PvP)");
-        System.out.println("2. Player vs Computer (PvE)");
+        System.out.println("Select Mode:");
+        System.out.println("1. PvP (2 players)");
+        System.out.println("2. PvE (vs Computer)");
 
-        boolean vsComputer = false;
-        String choice = scanner.nextLine();
+        boolean vsAI = false;
+        String choice = s.nextLine();
         if (choice.equals("2")) {
-            vsComputer = true;
-            System.out.println("Mode: Player vs Computer selected.");
+            vsAI = true;
+            System.out.println("Playing against AI.");
         } else {
-            System.out.println("Mode: Player vs Player selected.");
+            System.out.println("Local PvP started.");
         }
 
-        Game game = new Game(vsComputer);
+        Game game = new Game(vsAI);
         game.board.printBoard();
 
         while (!game.isGameOver()) {
             game.playTurn();
         }
+        
+        System.out.println("Thanks for playing!");
     }
 }

@@ -4,177 +4,179 @@ public class Board {
 
     public Board() {
         squares = new Square[31];
-        initializeSquares();
+        init();
     }
 
-    public void initializeSquares() {
+    public void init() {
         for (int i = 1; i <= 30; i++) {
             squares[i] = new Square(i);
         }
     }
 
-    public Square getSquare(int index) {
-        if (index < 1 || index > 30) return null;
-        return squares[index];
+    public Square getSquare(int idx) {
+        if (idx < 1 || idx > 30) return null;
+        return squares[idx];
     }
 
-    public void placePiece(Piece piece, int position) {
-        if (position > 30) return;
-        squares[position].occupant = piece;
-        piece.position = position;
+    public void placePiece(Piece p, int pos) {
+        if (pos > 30) return;
+        squares[pos].occupant = p;
+        p.position = pos;
     }
 
-    public boolean isMoveValid(Piece piece, int steps) {
-        int oldPosition = piece.position;
-        if (oldPosition > 30) return false;
-        if (oldPosition == 28 || oldPosition == 29 || oldPosition == 30) return true;
-        if (oldPosition == 26 && steps == 5) return true;
-        int newPosition = oldPosition + steps;
-        if (oldPosition < 26 && newPosition > 26) return false;
-        if (newPosition > 30) return false;
-        Square targetSquare = squares[newPosition];
-        if (targetSquare.occupant != null) {
-            return !targetSquare.occupant.owner.equals(piece.owner);
+    public boolean isMoveValid(Piece p, int steps) {
+        int oldPos = p.position;
+        if (oldPos > 30) return false;
+        
+        if (oldPos == 28 || oldPos == 29 || oldPos == 30) return true;
+        if (oldPos == 26 && steps == 5) return true;
+
+        int newPos = oldPos + steps;
+        
+        if (oldPos < 26 && newPos > 26) return false;
+        if (newPos > 30) return false;
+
+        Square target = squares[newPos];
+        if (target.occupant != null) {
+            return !target.occupant.owner.equals(p.owner);
         }
         return true;
     }
 
-    public boolean movePiece(Piece piece, int steps) {
-        int oldPosition = piece.position;
-        if (oldPosition == 26) {
+    public boolean movePiece(Piece p, int steps) {
+        int oldPos = p.position;
+
+        if (oldPos == 26) {
             if (steps == 5) {
-                if (!silentMode) System.out.println("Rolled a 5! Exiting immediately from House of Happiness (26)");
-                exitPiece(piece, oldPosition);
+                if (!silentMode) System.out.println("Got a 5! Exiting from 26");
+                exitPiece(p, oldPos);
                 return true;
             }
         }
-        if (oldPosition == 28) {
+
+        if (oldPos == 28) {
             if (steps == 3) {
-                exitPiece(piece, oldPosition);
+                exitPiece(p, oldPos);
             } else {
-                if (!silentMode) System.out.println("Did not roll a 3! Returning to Rebirth (15)");
-                handleReturnToRebirth(piece, oldPosition);
+                if (!silentMode) System.out.println("Back to Rebirth (15) - result wasn't 3");
+                sendToRebirth(p, oldPos);
             }
             return true;
         }
-        if (oldPosition == 29) {
+
+        if (oldPos == 29) {
             if (steps == 2) {
-                exitPiece(piece, oldPosition);
+                exitPiece(p, oldPos);
             } else {
-                if (!silentMode) System.out.println("Did not roll a 2! Returning to Rebirth (15)");
-                handleReturnToRebirth(piece, oldPosition);
+                if (!silentMode) System.out.println("Back to Rebirth (15) - result wasn't 2");
+                sendToRebirth(p, oldPos);
             }
             return true;
         }
-        if (oldPosition == 30) {
-            exitPiece(piece, oldPosition);
+
+        if (oldPos == 30) {
+            exitPiece(p, oldPos);
             return true;
         }
-        int newPosition = oldPosition + steps;
-        if (oldPosition < 26 && newPosition > 26) {
-            if (!silentMode) System.out.println("Cannot bypass House of Happiness (26). Pick another piece or wait for exact roll.");
+
+        int newPos = oldPos + steps;
+
+        if (oldPos < 26 && newPos > 26) {
+            if (!silentMode) System.out.println("Stop at square 26 first!");
             return false;
         }
-        if (newPosition > 30) {
-            if (!silentMode) System.out.println("Cannot exceed square 30 except via special exit rules (from 28, 29, 30).");
+
+        if (newPos > 30) {
+            if (!silentMode) System.out.println("Can't go past 30");
             return false;
         }
-        Square targetSquare = squares[newPosition];
-        if (newPosition == 27) {
-            if (!silentMode) System.out.println("Landed in Water! Returning to Rebirth (15)");
-            handleReturnToRebirth(piece, oldPosition);
+
+        if (newPos == 27) {
+            if (!silentMode) System.out.println("Landed in Water! Rebirth time.");
+            sendToRebirth(p, oldPos);
             return true;
         }
-        if (targetSquare.occupant != null) {
-            Piece otherPiece = targetSquare.occupant;
-            if (!otherPiece.owner.equals(piece.owner)) {
-                targetSquare.occupant = piece;
-                piece.position = newPosition;
-                squares[oldPosition].occupant = otherPiece;
-                otherPiece.position = oldPosition;
+
+        Square target = squares[newPos];
+        if (target.occupant != null) {
+            Piece other = target.occupant;
+            if (!other.owner.equals(p.owner)) {
+                target.occupant = p;
+                p.position = newPos;
+                squares[oldPos].occupant = other;
+                other.position = oldPos;
                 return true;
             } else {
-                if (!silentMode) System.out.println("Square occupied by same color piece. Cannot move.");
+                if (!silentMode) System.out.println("Blocked by your own piece");
                 return false;
             }
         } else {
-            removePiece(oldPosition);
-            placePiece(piece, newPosition);
+            removePiece(oldPos);
+            placePiece(p, newPos);
             return true;
         }
     }
 
-    public void exitPiece(Piece piece, int currentPos) {
-        removePiece(currentPos);
-        piece.position = 31;
-        if (!silentMode) System.out.println("Piece" + piece.id + " (" + piece.owner + ") successfully exited!");
+    public void exitPiece(Piece p, int pos) {
+        removePiece(pos);
+        p.position = 31;
+        if (!silentMode) System.out.println("Piece " + p.id + " is out!");
     }
 
-    public void forceReturnToRebirth(Piece piece) {
-        int oldPos = piece.position;
-        if (oldPos == 28 || oldPos == 30 || oldPos == 29) {
-            if (!silentMode) System.out.println("Penalty! Piece P" + piece.id + " was on square " + oldPos + " but not moved. Returning to Rebirth (15).");
-            handleReturnToRebirth(piece, oldPos);
+    public void forceReturnToRebirth(Piece p) {
+        int pos = p.position;
+        if (pos == 28 || pos == 30 || pos == 29) {
+            if (!silentMode) System.out.println("Penalty: Piece " + p.id + " didn't move from " + pos);
+            sendToRebirth(p, pos);
         }
     }
 
-    private void handleReturnToRebirth(Piece piece, int currentPos) {
-        removePiece(currentPos);
-        int rebirthPos = 15;
-        if (squares[rebirthPos].occupant == null) {
-            placePiece(piece, rebirthPos);
+    public void sendToRebirth(Piece p, int current) {
+        removePiece(current);
+        int rebirth = 15;
+        if (squares[rebirth].occupant == null) {
+            placePiece(p, rebirth);
         } else {
-            int nearest = rebirthPos - 1;
-            while (nearest >= 1 && squares[nearest].occupant != null) {
-                nearest--;
+            int n = rebirth - 1;
+            while (n >= 1 && squares[n].occupant != null) {
+                n--;
             }
-            if (nearest >= 1) {
-                placePiece(piece, nearest);
-                if (!silentMode) System.out.println("Square 15 occupied, piece placed at square " + nearest);
-            } else {
-                if (!silentMode) System.out.println("No empty square found to return to!");
+            if (n >= 1) {
+                placePiece(p, n);
             }
         }
     }
 
-    public void removePiece(int position) {
-        if (position >= 1 && position <= 30) {
-            squares[position].occupant = null;
+    public void removePiece(int pos) {
+        if (pos >= 1 && pos <= 30) {
+            squares[pos].occupant = null;
         }
     }
 
     public void printBoard() {
-        System.out.println("\nSenet Board (R:Rebirth, H:Happiness, W:Water, 3:Truths, 2:Atoum, F:Horus)");
-        System.out.println("-----------------------------------------------------------");
-        for (int i = 1; i <= 10; i++) {
-            printSingleSquare(i);
-        }
+        System.out.println("\n--- Senet Board ---");
+        for (int i = 1; i <= 10; i++) drawSquare(i);
         System.out.println();
-        for (int i = 20; i >= 11; i--) {
-            printSingleSquare(i);
-        }
+        for (int i = 20; i >= 11; i--) drawSquare(i);
         System.out.println();
-        for (int i = 21; i <= 30; i++) {
-            printSingleSquare(i);
-        }
-        System.out.println("\n-------------------------------------------------------------------------");
+        for (int i = 21; i <= 30; i++) drawSquare(i);
+        System.out.println("\n-------------------");
     }
 
-    private void printSingleSquare(int i) {
-        String content = "  ";
+    public void drawSquare(int i) {
+        String txt = "  ";
         if (squares[i].occupant != null) {
-            content = squares[i].occupant.owner + squares[i].occupant.id;
+            txt = squares[i].occupant.owner + squares[i].occupant.id;
         }
-        String special = " ";
+        char mark = ' ';
         switch (i) {
-            case 15 -> special = "R";
-            case 26 -> special = "H";
-            case 27 -> special = "W";
-            case 28 -> special = "3";
-            case 29 -> special = "2";
-            case 30 -> special = "F";
+            case 15 -> mark = 'R';
+            case 26 -> mark = 'H';
+            case 27 -> mark = 'W';
+            case 28 -> mark = '3';
+            case 29 -> mark = '2';
+            case 30 -> mark = 'F';
         }
-
-        System.out.printf("[%2s%s] ", content, special);
+        System.out.printf("[%2s%c] ", txt, mark);
     }
 }
