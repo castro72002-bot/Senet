@@ -137,8 +137,21 @@ public class Game {
     }
 
     public boolean isGameOver() {
-        boolean wWin = whites.stream().allMatch(p -> p.position > 30);
-        boolean bWin = blacks.stream().allMatch(p -> p.position > 30);
+        boolean wWin = true;
+        for (Piece p : whites) {
+            if (p.position <= 30) {
+                wWin = false;
+                break;
+            }
+        }
+
+        boolean bWin = true;
+        for (Piece p : blacks) {
+            if (p.position <= 30) {
+                bWin = false;
+                break;
+            }
+        }
         
         if (wWin) {
             System.out.println("!!! White Wins !!!");

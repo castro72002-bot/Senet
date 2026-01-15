@@ -86,11 +86,6 @@ public class Board {
             return false;
         }
 
-        if (newPos > 30) {
-            if (!silentMode) System.out.println("Can't go past 30");
-            return false;
-        }
-
         if (newPos == 27) {
             if (!silentMode) System.out.println("Landed in Water! Rebirth time.");
             sendToRebirth(p, oldPos);

@@ -38,17 +38,18 @@ public class SenetAI {
         
         double total = 0;
         for (int r = 1; r <= 5; r++) {
+            double prob = getProb(r);
             List<SenetState> options = s.nextStates(r);
             if (options.isEmpty()) {
                 SenetState skip = s.copy();
                 skip.player = "B";
-                total += 0.2 * minPlayer(skip, d - 1);
+                total += prob * minPlayer(skip, d - 1);
             } else {
                 double best = -1e9;
                 for (SenetState st : options) {
                     best = Math.max(best, minPlayer(st, d - 1));
                 }
-                total += 0.2 * best;
+                total += prob * best;
             }
         }
         return total;
@@ -59,20 +60,30 @@ public class SenetAI {
         
         double total = 0;
         for (int r = 1; r <= 5; r++) {
+            double prob = getProb(r);
             List<SenetState> options = s.nextStates(r);
             if (options.isEmpty()) {
                 SenetState skip = s.copy();
                 skip.player = "W";
-                total += 0.2 * maxPlayer(skip, d - 1);
+                total += prob * maxPlayer(skip, d - 1);
             } else {
                 double best = 1e9;
                 for (SenetState st : options) {
                     best = Math.min(best, maxPlayer(st, d - 1));
                 }
-                total += 0.2 * best;
+                total += prob * best;
             }
         }
         return total;
+    }
+
+    public static double getProb(int r) {
+        if (r == 1) return 0.25;      // 4/16
+        if (r == 2) return 0.375;     // 6/16
+        if (r == 3) return 0.25;      // 4/16
+        if (r == 4) return 0.0625;    // 1/16
+        if (r == 5) return 0.0625;    // 1/16
+        return 0;
     }
 
     public static int getMovedId(SenetState oldS, SenetState newS) {
