@@ -66,13 +66,21 @@ public class SenetState {
         double score = 0;
 
         for (Piece p : whiteList) {
-            if (p.position > 30) score += 150;
-            else score += p.position; 
+            if (p.position > 30) score += 500;
+            else {
+                score += p.position * 2;
+                if (p.position >= 26) score += 50;
+                if (p.position == 28 || p.position == 29 || p.position == 30) score -= 100;
+            }
         }
 
         for (Piece p : blackList) {
-            if (p.position > 30) score -= 150;
-            else score -= p.position;
+            if (p.position > 30) score -= 500;
+            else {
+                score -= p.position * 2;
+                if (p.position >= 26) score -= 50;
+                if (p.position == 28 || p.position == 29 || p.position == 30) score += 100;
+            }
         }
 
         score += evalSquares(whiteList, 1);
@@ -87,9 +95,9 @@ public class SenetState {
     public double evalSquares(List<Piece> pieces, int m) {
         double s = 0;
         for (Piece p : pieces) {
-            if (p.position == 26) s += 30;
-            if (p.position >= 28 && p.position <= 30) s += 40;
-            if (p.position == 27) s -= 50;
+            if (p.position == 26) s += 100; // بيت الحياة مهم جداً
+            if (p.position == 15) s += 30;  // بيت التجديد (مكان العودة)
+            if (p.position >= 28 && p.position <= 30) s += 80; // المربعات الآمنة قبل الخروج
         }
         return s * m;
     }
@@ -107,8 +115,21 @@ public class SenetState {
     }
 
     public boolean isDone() {
-        boolean wOut = whiteList.stream().allMatch(p -> p.position > 30);
-        boolean bOut = blackList.stream().allMatch(p -> p.position > 30);
+        boolean wOut = true;
+        for (Piece p : whiteList) {
+            if (p.position <= 30) {
+                wOut = false;
+                break;
+            }
+        }
+
+        boolean bOut = true;
+        for (Piece p : blackList) {
+            if (p.position <= 30) {
+                bOut = false;
+                break;
+            }
+        }
         return wOut || bOut;
     }
 }
